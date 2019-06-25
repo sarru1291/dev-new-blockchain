@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon dev/*.js",
+    "node1": "nodemon dev/networkNode.js 3001 http://localhost:3001",
+    "node2": "nodemon dev/networkNode.js 3002 http://localhost:3001",
+    "node3": "nodemon dev/networkNode.js 3003 http://localhost:3003",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -14,6 +16,7 @@
     "body-parser": "^1.19.0",
     "express": "^4.17.1",
     "nodemon": "^1.19.1",
+    "request-promise": "^4.2.4",
     "sha256": "^0.2.0",
     "uuid": "^3.3.2"
   }

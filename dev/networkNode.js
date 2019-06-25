@@ -3,6 +3,9 @@ const bodyParser = require("body-parser");
 const app = express();
 const Blockchain = require("./blockchain");
 const uuid = require("uuid");
+const rp = require("request-promise");
+const port = process.argv[2];
+
 // new Blockchain Instance
 const bitcoin = new Blockchain();
 // Random node Address
@@ -53,6 +56,48 @@ app.get("/mine", function(req, res) {
   });
 });
 
-app.listen(3000, function() {
-  console.log("listening on port 3000...");
+// Register a node and broadcast to entire network
+app.post("/register-and-broadcast-node", function(req, res) {
+  const newNodeUrl = req.body.newNodeUrl;
+  if (bitcoin.networkNodes.indexOf(newNodeUrl == -1)) {
+    bitcoin.networkNodes.push(newNodeUrl);
+  }
+  const regNodesPromies = [];
+  bitcoin.networkNodes.forEach(networkNodeUrl => {
+    const requestOptions = {
+      uri: networkNodeUrl + "/register-node",
+      method: "POST",
+      body: {
+        newNodeUrl: newNodeUrl
+      },
+      json: true
+    };
+    regNodesPromies.push(rp(requestOptions));
+  });
+
+  Promise.all(regNodesPromies)
+    .then(data => {
+      const bulkRegisterOptions = {
+        uri: newNodeUrl + "/register-node-bulk",
+        method: "POST",
+        body: {
+          allNetworkNodes: [...bitcoin.networkNodes, bitcoin.currentNodeUrl]
+        },
+        json: true
+      };
+      return rp(bulkRegisterOptions);
+    })
+    .then(data => {
+      res.json({ note: "New node registered with network successfully" });
+    });
+});
+
+// Register a node with network
+app.post("/register-node", function(req, res) {});
+
+// Register multiple nodes at once
+app.post("/register-nodes-bulk", function(req, res) {});
+
+app.listen(port, function() {
+  console.log(`listening on port ${port}...`);
 });
