@@ -102,7 +102,7 @@ app.get("/mine", function(req, res) {
 
 // broadcast new block to entire network
 app.post("/receive-new-block", function(req, res) {
-  const newBlock = req.body.newBlocK;
+  const newBlock = req.body.newBlock;
   const lastBlock = bitcoin.getLastBlock();
   const correctHash = lastBlock.hash === newBlock.previousBlockHash;
   const correctIndex = lastBlock["index"] + 1 === newBlock["index"];
@@ -202,12 +202,12 @@ app.get("/consensus", function(req, res) {
         maxChainLength = blockchain.chain.length;
         newLongestChain = blockchain.chain;
         newPendingTransactions = blockchain.pendingTransactions;
-      }
+      };
     });
 
     if (
       !newLongestChain ||
-      (newLongestChain && bitcoin.chainIsValid(newLongestChain))
+      (newLongestChain && !bitcoin.chainIsValid(newLongestChain))
     ) {
       res.json({
         note: "Current chain has not been replaced.",
