@@ -68,23 +68,24 @@ app.get("/mine", function(req, res) {
   );
   const newBlock = bitcoin.createNewBlock(nonce, previousBlockHash, blockHash);
   const requestPromises = [];
+
   bitcoin.networkNodes.forEach(networkNodeUrl => {
     const requestOptions = {
       uri: networkNodeUrl + "/receive-new-block",
       method: "POST",
-      body: newBlock,
+      body: { newBlock: newBlock },
       json: true
     };
     requestPromises.push(rp(requestOptions));
   });
-  Promises.all(requestPromises)
+  Promise.all(requestPromises)
     .then(data => {
       const requestOptions = {
         uri: bitcoin.currentNodeUrl + "/transaction/broadcast",
         method: "POST",
         body: {
           amount: 12.5,
-          sender: "00",
+          sender: "00FGSF3",
           recipient: nodeAddress
         },
         json: true
@@ -101,7 +102,7 @@ app.get("/mine", function(req, res) {
 
 // broadcast new block to entire network
 app.post("/receive-new-block", function(req, res) {
-  const newBlock = req.body.newBlock;
+  const newBlock = req.body.newBlocK;
   const lastBlock = bitcoin.getLastBlock();
   const correctHash = lastBlock.hash === newBlock.previousBlockHash;
   const correctIndex = lastBlock["index"] + 1 === newBlock["index"];
@@ -178,6 +179,49 @@ app.post("/register-node-bulk", function(req, res) {
       bitcoin.networkNodes.push(networkNodeUrl);
   });
   res.json({ note: "Bulk registration successful" });
+});
+
+app.get("/consensus", function(req, res) {
+  const requestPromises = [];
+  bitcoin.networkNodes.forEach(networkNodeUrl => {
+    const requestOptions = {
+      uri: networkNodeUrl + "/blockchain",
+      method: "GET",
+      json: true
+    };
+    requestPromises.push(rp(requestOptions));
+  });
+  Promise.all(requestPromises).then(blockchains => {
+    const currentChainLength = bitcoin.chain.length;
+    let maxChainLength = currentChainLength;
+    let newLongestChain = null;
+    let newPendingTransactions = null;
+
+    blockchains.forEach(blockchain => {
+      if (blockchain.chain.length > maxChainLength) {
+        maxChainLength = blockchain.chain.length;
+        newLongestChain = blockchain.chain;
+        newPendingTransactions = blockchain.pendingTransactions;
+      }
+    });
+
+    if (
+      !newLongestChain ||
+      (newLongestChain && bitcoin.chainIsValid(newLongestChain))
+    ) {
+      res.json({
+        note: "Current chain has not been replaced.",
+        chain: bitcoin.chain
+      });
+    } else {
+      bitcoin.chain = newLongestChain;
+      bitcoin.pendingTransactions = newPendingTransactions;
+      res.json({
+        note: "This chain has been replaced.",
+        chain: bitcoin.chain
+      });
+    }
+  });
 });
 
 app.listen(port, function() {
