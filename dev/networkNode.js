@@ -181,6 +181,7 @@ app.post("/register-node-bulk", function(req, res) {
   res.json({ note: "Bulk registration successful" });
 });
 
+// Check the longest chain and validate all node with valid chain
 app.get("/consensus", function(req, res) {
   const requestPromises = [];
   bitcoin.networkNodes.forEach(networkNodeUrl => {
@@ -202,7 +203,7 @@ app.get("/consensus", function(req, res) {
         maxChainLength = blockchain.chain.length;
         newLongestChain = blockchain.chain;
         newPendingTransactions = blockchain.pendingTransactions;
-      };
+      }
     });
 
     if (
@@ -221,6 +222,35 @@ app.get("/consensus", function(req, res) {
         chain: bitcoin.chain
       });
     }
+  });
+});
+
+// Search for particular block using blockHash
+app.get("/block/:blockHash", function(req, res) {
+  const blockHash = req.params.blockHash;
+  const correctBlock = bitcoin.getBlock(blockHash);
+  res.json({
+    block: correctBlock
+  });
+});
+
+// Search for transaction using transactionId
+app.get("/transaction/:transactionId", function(req, res) {
+  const transactionId = req.params.transactionId;
+  const transactionData = bitcoin.getTransaction(transactionId);
+
+  res.json({
+    transaction: transactionData.transaction,
+    block: transactionData.block
+  });
+});
+
+// Search for data associated with specific address
+app.get("/address/:address", function(req, res) {
+  const address = req.params.address;
+  const addressData = bitcoin.getAddressData(address);
+  res.json({
+    addressData: addressData
   });
 });
 
